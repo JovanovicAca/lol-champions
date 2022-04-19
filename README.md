@@ -1,4 +1,4 @@
-**# lol-champions**
+**League of legends champions**
 
 **Opis aplikacije:**
 
