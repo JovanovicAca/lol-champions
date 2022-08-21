@@ -10,6 +10,6 @@
 5. Obezbeđene su CRUD operacije nad herojima.
 ***
 
-Tehnologije koje će biti korišćene su Pharo, Golang i mssql.
+Tehnologije koje će biti korišćene su Pharo, Golang i PostgreSQL.
 
 
