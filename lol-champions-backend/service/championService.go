@@ -32,8 +32,23 @@ func (*championService) SearchFilter(searchFilter *helper.FilterRequest) (*[]mod
 	//Get all and search/filter in that list
 	responseChamps, _ = championRepository.GetAll()
 	//List where everything will be stored
-	searchedFiltered := championRepository.SearchFilter(responseChamps, *searchFilter)
-	return &searchedFiltered, nil
+	searched := championRepository.SearchFilter(responseChamps, *searchFilter)
+	filtered := championRepository.Filter(responseChamps, *searchFilter)
+	return sameElements(searched, filtered)
+}
+
+func sameElements(champs []model.Champion, list []model.Champion) (*[]model.Champion, error) {
+	mb := make(map[uuid.UUID]struct{}, len(list))
+	for _, x := range list {
+		mb[x.Id] = struct{}{}
+	}
+	var diff []model.Champion
+	for i, x := range champs {
+		if _, found := mb[x.Id]; found {
+			diff = append(diff, champs[i])
+		}
+	}
+	return &diff, nil
 }
 
 func (s *championService) UpdateChamp(champ model.Champion) {
