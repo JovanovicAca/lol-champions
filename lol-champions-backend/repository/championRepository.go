@@ -3,24 +3,34 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
-	_ "github.com/lib/pq"
 	"lol-champions-backend/helper"
 	"lol-champions-backend/model"
 	"strings"
+
+	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 )
 
 type ChampionRepository interface {
 	GetAll() ([]model.Champion, error)
 	Save(champ model.Champion) (model.Champion, error)
-	FindById(id uuid.UUID) model.Champion
-	DeleteChamp(champ model.Champion)
-	UpdateChamp(champ model.Champion)
+	FindById(id uuid.UUID) (model.Champion, error)
+	DeleteChamp(id uuid.UUID) int
+	UpdateChamp(champ model.Champion) (model.Champion, error)
 	SearchFilter(champs []model.Champion, filter helper.FilterRequest) []model.Champion
 	Filter(searched []model.Champion, filter helper.FilterRequest) []model.Champion
 }
 
 type championRepository struct {
+}
+
+// var (
+// 	worldRepository     WorldRepository
+// )
+
+func NewChampionRepository() ChampionRepository {
+	//worldRepository = worldRepo
+	return &championRepository{}
 }
 
 func (r *championRepository) Filter(responseChamps []model.Champion, filter helper.FilterRequest) []model.Champion {
@@ -54,17 +64,17 @@ func (r *championRepository) Filter(responseChamps []model.Champion, filter help
 
 			}
 		}
-		if filter.Positions != nil {
-			for _, el1 := range responseChamps[y].Position {
-				for _, el := range filter.Positions {
+		// if filter.Positions != nil {
+		// 	for _, el1 := range responseChamps[y].Position {
+		// 		for _, el := range filter.Positions {
 
-					if strings.Compare(el1, el) == 0 {
-						positionChamps = append(positionChamps, responseChamps[y])
-					}
-				}
+		// 			if strings.Compare(el1, el) == 0 {
+		// 				positionChamps = append(positionChamps, responseChamps[y])
+		// 			}
+		// 		}
 
-			}
-		}
+		// 	}
+		// }
 	}
 	returnedChamps = responseChamps
 	if filter.Class != "" {
@@ -105,11 +115,11 @@ func (*championRepository) SearchFilter(champs []model.Champion, filter helper.F
 	var searchedChampsWorld []model.Champion
 	if filter.WorldSearch != "" {
 		fmt.Println("world search")
-		for i, element := range champs {
-			if strings.Contains(element.World, filter.WorldSearch) {
-				searchedChampsWorld = append(searchedChampsWorld, champs[i])
-			}
-		}
+		// for i, element := range champs {
+		// 	if strings.Contains(element.World, filter.WorldSearch) {
+		// 		searchedChampsWorld = append(searchedChampsWorld, champs[i])
+		// 	}
+		// }
 	}
 
 	//Make intersection between two lists
@@ -169,8 +179,9 @@ func intersection(name []model.Champion, world []model.Champion) []model.Champio
 	return out
 }
 
-func (*championRepository) UpdateChamp(champ model.Champion) {
+func (*championRepository) UpdateChamp(champ model.Champion) (model.Champion, error) {
 	fmt.Println("Updating champion")
+
 	sqlConn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	sqlObj, connectionError := sql.Open("postgres", sqlConn)
@@ -178,36 +189,39 @@ func (*championRepository) UpdateChamp(champ model.Champion) {
 	if connectionError != nil {
 		fmt.Println(fmt.Errorf("error opening database: %v", connectionError))
 	}
-	defer sqlObj.Close()
-
-	updatedChamp := `UPDATE "Champion" SET "name" = $2, "world" = $3, "class" =  $4, "weapon" = $5, "MagicCost" = $6 WHERE "id" = $1`
-	_, error := sqlObj.Exec(updatedChamp, champ.Id, champ.Name, champ.World, champ.Class, champ.Weapon, champ.MagicCost)
+	var worldId = champ.World.Id.String()
+	updatedChamp := `UPDATE "champions" SET "name" = $2, "class" =  $3, "weapon" = $4, "magiccost" = $5, "worldsid" = $6 WHERE "id" = $1`
+	_, error := sqlObj.Exec(updatedChamp, champ.Id, champ.Name, champ.Class, champ.Weapon, champ.MagicCost, worldId)
 	if error != nil {
+		fmt.Println("2")
 		panic(error)
+
 	}
 
-	//Change in Champion_position champs positions
+	//Change in champion_position champs positions
 	//First delete all positions and then add new
 	for range champ.Position {
-		deleted := `DELETE FROM "Champion_position" WHERE "championId" = $1`
+		//fmt.Println("5")
+		deleted := `DELETE FROM "champion_position" WHERE "championid" = $1`
 		_, error := sqlObj.Exec(deleted, champ.Id)
 		if error != nil {
 			panic(error)
 		}
-
 	}
 	for _, element := range champ.Position {
-		position := NewPositionRepository().FindByName(element)
-		insert := `insert into "Champion_position"("championId","positionId") values ($1, $2)`
+		position := NewPositionRepository().FindByName(element.Position)
+		insert := `insert into "champion_position"("championid","positionid") values ($1, $2)`
 		_, e := sqlObj.Exec(insert, champ.Id, position.Id)
 		if e != nil {
-			panic(e)
+			return champ, e
 		}
 	}
+	defer sqlObj.Close()
 	fmt.Println("Successfully Updated Champion!")
+	return champ, nil
 }
 
-func (r *championRepository) DeleteChamp(champ model.Champion) {
+func (r *championRepository) DeleteChamp(id uuid.UUID) int {
 	fmt.Println("Deleting Champion")
 	sqlConn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -218,27 +232,32 @@ func (r *championRepository) DeleteChamp(champ model.Champion) {
 	}
 	defer sqlObj.Close()
 
+	fmt.Println(id)
 	//Delete from Champion_position also
-	deletedChampPos := `DELETE FROM "Champion_position" WHERE "championId" = $1`
-	_, error1 := sqlObj.Exec(deletedChampPos, champ.Id)
+	deletedChampPos := `DELETE FROM "champion_position" WHERE "championid" = $1`
+	_, error1 := sqlObj.Exec(deletedChampPos, id)
 	if error1 != nil {
-		panic(error1)
+		return 1
 	}
-	deletedChamp := `DELETE FROM "Champion" WHERE "id" = $1`
-	res, error := sqlObj.Exec(deletedChamp, champ.Id)
+	deletedChamp := `DELETE FROM "champions" WHERE "id" = $1`
+	res, error := sqlObj.Exec(deletedChamp, id)
 	if error != nil {
-		panic(error)
+		return 1
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
-		panic(err)
+		return 1
 	}
-	fmt.Println(count)
+	if count == 0 {
+		return 1
+	}
 	fmt.Println("Successfully Deleted Champion!")
+	return 0
 }
 
-func (r *championRepository) FindById(id uuid.UUID) model.Champion {
+func (r *championRepository) FindById(id uuid.UUID) (model.Champion, error) {
 	//Champ for return
+	//Getting champion by id
 	champ := model.Champion{}
 	sqlConn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -251,7 +270,7 @@ func (r *championRepository) FindById(id uuid.UUID) model.Champion {
 	defer sqlObj.Close()
 
 	//Find champion
-	selection, error := sqlObj.Query(`SELECT * FROM "Champion" WHERE "Id" = $1`, id)
+	selection, error := sqlObj.Query(`SELECT * FROM "champions" WHERE "id" = $1`, id)
 
 	if error != nil {
 		panic(error)
@@ -260,73 +279,32 @@ func (r *championRepository) FindById(id uuid.UUID) model.Champion {
 	for selection.Next() {
 		var id uuid.UUID
 		var name string
-		var world string
 		var class string
 		var weapon string
 		var magicCost string
+		var worldsid uuid.UUID
 
-		error1 := selection.Scan(&id, &name, &world, &class, &weapon, &magicCost)
+		error1 := selection.Scan(&id, &name, &class, &weapon, &magicCost, &worldsid)
 		if error1 != nil {
 			panic(error1)
 		}
 
+		var positionsChamp []model.Position
+		positionsIds := FindPositionIdsFromChampionId(id)
+		for _, element := range positionsIds {
+			positionsChamp = append(positionsChamp, NewPositionRepository().FindById(element))
+		}
+		var world = WorldRepository.FindById(NewWorldRepository(), worldsid)
 		champ.Id = id
 		champ.Name = name
 		champ.World = world
 		champ.Class = class
+		champ.Position = positionsChamp
 		champ.Weapon = weapon
 		champ.MagicCost = magicCost
 
-		//Find champions positions
-		positionsSelection, error2 := sqlObj.Query(`SELECT * FROM "Champion_position" WHERE "championId" = $1`, id)
-
-		if error2 != nil {
-			panic(error2)
-		}
-
-		//List for champion positions
-		var positionsChamp []model.Position
-		var positionsChampString []string
-
-		//From champion_positions take positions from Positions
-		for positionsSelection.Next() {
-			var pId uuid.UUID
-			var positionName string
-
-			error3 := positionsSelection.Scan(&pId, &positionName)
-			if error3 != nil {
-				panic(error3)
-			}
-
-			//Find positions
-			positionSelection, error4 := sqlObj.Query(`SELECT * FROM "Position" where "id" = $1`, pId)
-
-			if error4 != nil {
-				panic(error4)
-			}
-
-			for positionSelection.Next() {
-				var poId uuid.UUID
-				var poName string
-				error5 := positionSelection.Scan(&poId, &poName)
-				if error5 != nil {
-					panic(error5)
-				}
-				position := model.Position{
-					Id:       poId,
-					Position: poName,
-				}
-				//Adding positions to the list
-				positionsChamp = append(positionsChamp, position)
-			}
-			//Add positions as strings in champ
-			for _, element := range positionsChamp {
-				positionsChampString = append(positionsChampString, element.Position)
-			}
-			champ.Position = positionsChampString
-		}
 	}
-	return champ
+	return champ, nil
 }
 
 func (*championRepository) GetAll() ([]model.Champion, error) {
@@ -344,7 +322,7 @@ func (*championRepository) GetAll() ([]model.Champion, error) {
 
 	defer sqlObj.Close()
 
-	selection, error := sqlObj.Query(`SELECT * FROM "Champion"`)
+	selection, error := sqlObj.Query(`SELECT * FROM "champions"`)
 	if error != nil {
 		panic(error)
 	}
@@ -352,37 +330,34 @@ func (*championRepository) GetAll() ([]model.Champion, error) {
 	for selection.Next() {
 		var id uuid.UUID
 		var name string
-		var world string
 		var class string
 		var weapon string
 		var magicCost string
+		var worldsid uuid.UUID
 
-		error1 := selection.Scan(&id, &name, &world, &class, &weapon, &magicCost)
+		error1 := selection.Scan(&id, &name, &class, &weapon, &magicCost, &worldsid)
 		if error1 != nil {
 			panic(error1)
 		}
-		//Find all positions id from Champion_position
-		var positionsChampString []string
+		//Find all positions id from champion_position
 		var positionsChamp []model.Position
 		positionsIds := FindPositionIdsFromChampionId(id)
 
 		for _, element := range positionsIds {
-			positionsChamp = append(positionsChamp, PositionRepository(NewPositionRepository()).FindById(element))
+			positionsChamp = append(positionsChamp, NewPositionRepository().FindById(element))
 		}
-		for _, element1 := range positionsChamp {
-			positionsChampString = append(positionsChampString, element1.Position)
-		}
+
+		var world = WorldRepository.FindById(NewWorldRepository(), worldsid)
 		champ := model.Champion{
 			Id:        id,
 			Name:      name,
 			World:     world,
 			Class:     class,
-			Position:  positionsChampString,
+			Position:  positionsChamp,
 			Weapon:    weapon,
 			MagicCost: magicCost,
 		}
 		champList = append(champList, champ)
-		//champ.Position = positionsChampString
 	}
 	return champList, nil
 }
@@ -398,7 +373,7 @@ func FindPositionIdsFromChampionId(id uuid.UUID) []uuid.UUID {
 
 	defer sqlObj.Close()
 
-	selection, error := sqlObj.Query(`SELECT * FROM "Champion_position" WHERE "championId" = $1`, id)
+	selection, error := sqlObj.Query(`SELECT * FROM "champion_position" WHERE "championid" = $1`, id)
 
 	if error != nil {
 		panic(error)
@@ -421,6 +396,7 @@ func FindPositionIdsFromChampionId(id uuid.UUID) []uuid.UUID {
 
 func (*championRepository) Save(champ model.Champion) (model.Champion, error) {
 	fmt.Println("Adding New Champion")
+	fmt.Println(champ)
 	sqlConn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	sqlObj, connectionError := sql.Open("postgres", sqlConn)
@@ -430,10 +406,9 @@ func (*championRepository) Save(champ model.Champion) (model.Champion, error) {
 	}
 	// Insert into db
 	var id = champ.Id.String()
-
-	insert := `insert into "Champion"("id", "name", "world", "class", "weapon", "MagicCost") values ($1, $2, $3, $4, $5, $6)`
-	//fmt.Println(champ)
-	_, e := sqlObj.Exec(insert, id, champ.Name, champ.World, champ.Class, champ.Weapon, champ.MagicCost)
+	var worldId = champ.World.Id.String()
+	insert := `insert into "champions"("id", "name", "class", "weapon", "magiccost","worldsid") values ($1, $2, $3, $4, $5, $6)`
+	_, e := sqlObj.Exec(insert, id, champ.Name, champ.Class, champ.Weapon, champ.MagicCost, worldId)
 	if e != nil {
 		fmt.Println(e)
 		return champ, e
@@ -441,8 +416,8 @@ func (*championRepository) Save(champ model.Champion) (model.Champion, error) {
 
 	//Add champs positions
 	for _, element := range champ.Position {
-		position := NewPositionRepository().FindByName(element)
-		insert := `insert into "Champion_position"("championId","positionId") values ($1, $2)`
+		position := NewPositionRepository().FindByName(element.Position)
+		insert := `insert into "champion_position"("championid","positionid") values ($1, $2)`
 		_, e := sqlObj.Exec(insert, champ.Id, position.Id)
 		if e != nil {
 			return champ, e
@@ -451,8 +426,4 @@ func (*championRepository) Save(champ model.Champion) (model.Champion, error) {
 	defer sqlObj.Close()
 	fmt.Println("Successfully added champion!")
 	return champ, nil
-}
-
-func NewChampionRepository() ChampionRepository {
-	return &championRepository{}
 }

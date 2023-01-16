@@ -3,8 +3,9 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
 	"lol-champions-backend/model"
+
+	"github.com/google/uuid"
 )
 
 type PositionRepository interface {
@@ -33,7 +34,7 @@ func (r *positionRepository) FindByName(name string) model.Position {
 
 	defer sqlObj.Close()
 
-	selection, error := sqlObj.Query(`SELECT * FROM "Position" WHERE "position" = $1`, name)
+	selection, error := sqlObj.Query(`SELECT * FROM "positions" WHERE "position" = $1`, name)
 
 	if error != nil {
 		panic(error)
@@ -65,7 +66,7 @@ func (*positionRepository) FindById(id uuid.UUID) model.Position {
 
 	defer sqlObj.Close()
 
-	selection, error := sqlObj.Query(`SELECT * FROM "Position" WHERE "id" = $1`, id)
+	selection, error := sqlObj.Query(`SELECT * FROM "positions" WHERE "id" = $1`, id)
 
 	if error != nil {
 		panic(error)
@@ -97,7 +98,7 @@ func (*positionRepository) Save(position model.Position) (model.Position, error)
 
 	var id = position.Id.String()
 
-	insert := `insert into "Position"("id","position") values ($1, $2)`
+	insert := `insert into "positions"("id","position") values ($1, $2)`
 	_, e := sqlObj.Exec(insert, id, position.Position)
 	if e != nil {
 		return position, e

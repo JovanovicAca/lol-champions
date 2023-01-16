@@ -3,6 +3,7 @@ package controller
 import (
 	_ "database/sql"
 	"encoding/json"
+	"lol-champions-backend/dto"
 	"lol-champions-backend/helper"
 	"lol-champions-backend/model"
 	"lol-champions-backend/service"
@@ -14,7 +15,8 @@ type ChampionController interface {
 	Save(response http.ResponseWriter, request *http.Request)
 	DeleteChamp(response http.ResponseWriter, request *http.Request)
 	UpdateChamp(response http.ResponseWriter, request *http.Request)
-	FilterSearchChamps(response http.ResponseWriter, request *http.Request)
+	//FindById(response http.ResponseWriter, request *http.Request)
+	// FilterSearchChamps(response http.ResponseWriter, request *http.Request)
 }
 type championController struct {
 }
@@ -28,6 +30,28 @@ func NewChampionController(service service.ChampionService) ChampionController {
 	return &championController{}
 }
 
+// func (*championController) FindById(response http.ResponseWriter, request *http.Request) {
+// 	var id uuid.UUID
+// 	fmt.Println("1")
+// 	data := json.NewDecoder(request.Body)
+// 	fmt.Println(data)
+// 	err := data.Decode(&id)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		response.WriteHeader(http.StatusInternalServerError)
+// 		return
+// 	}
+// 	fmt.Println("2")
+
+// 	// result, err1 := championService.FindById(&id)
+// 	// if err1 != nil {
+// 	// 	response.WriteHeader(http.StatusInternalServerError)
+// 	// 	return
+// 	// }
+
+// 	response.WriteHeader(http.StatusOK)
+// 	json.NewEncoder(response)
+// }
 func (*championController) FilterSearchChamps(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	var searchFilter helper.FilterRequest
@@ -51,57 +75,39 @@ func (*championController) FilterSearchChamps(response http.ResponseWriter, requ
 
 func (c *championController) UpdateChamp(response http.ResponseWriter, request *http.Request) {
 
-	var champ model.Champion
-
-	err := json.NewDecoder(request.Body).Decode(&champ)
-
+	response.Header().Set("Content-Type", "application/json")
+	var champDTO dto.ChampionDTO
+	err := json.NewDecoder(request.Body).Decode(&champDTO)
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-
-	champion := model.Champion{
-		Id:        champ.Id,
-		Name:      champ.Name,
-		Class:     champ.Class,
-		World:     champ.World,
-		Position:  champ.Position,
-		Weapon:    champ.Weapon,
-		MagicCost: champ.MagicCost,
+	result, err1 := championService.UpdateChamp(&champDTO)
+	if err1 != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	response.Header().Set("Content-Type", "application/json")
-
-	championService.UpdateChamp(champion)
 
 	response.WriteHeader(http.StatusOK)
-	json.NewEncoder(response)
+	json.NewEncoder(response).Encode(result)
 }
 
 func (*championController) DeleteChamp(response http.ResponseWriter, request *http.Request) {
 
-	var champ model.Champion
-
+	//var champ model.Champion
+	var champ dto.ChampionDTO
 	err := json.NewDecoder(request.Body).Decode(&champ)
 
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 	}
-
-	champion := model.Champion{
-		Id:        champ.Id,
-		Name:      champ.Name,
-		Class:     champ.Class,
-		World:     champ.World,
-		Position:  champ.Position,
-		Weapon:    champ.Weapon,
-		MagicCost: champ.MagicCost,
+	if championService.DeleteChamp(&champ) == 0 {
+		response.WriteHeader(http.StatusOK)
+		json.NewEncoder(response)
+	} else {
+		response.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(response)
 	}
-	response.Header().Set("Content-Type", "application/json")
-
-	championService.DeleteChamp(champion)
-
-	response.WriteHeader(http.StatusOK)
-	json.NewEncoder(response)
-
 }
 
 func (*championController) GetAll(response http.ResponseWriter, request *http.Request) {
@@ -114,16 +120,14 @@ func (*championController) GetAll(response http.ResponseWriter, request *http.Re
 
 func (*championController) Save(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	var champ model.Champion
-
-	err := json.NewDecoder(request.Body).Decode(&champ)
+	var champDTO dto.ChampionDTO
+	err := json.NewDecoder(request.Body).Decode(&champDTO)
 
 	if err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	result, err1 := championService.Save(&champ)
+	result, err1 := championService.Save(&champDTO)
 	if err1 != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		return

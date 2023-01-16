@@ -7,7 +7,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.6
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
 )
 
 require (

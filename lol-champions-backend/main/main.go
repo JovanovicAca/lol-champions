@@ -4,12 +4,13 @@ import (
 	_ "bufio"
 	_ "database/sql"
 	"fmt"
-	_ "github.com/denisenkom/go-mssqldb"
 	"lol-champions-backend/controller"
 	"lol-champions-backend/repository"
 	"lol-champions-backend/router"
 	"lol-champions-backend/service"
 	"net/http"
+
+	_ "github.com/denisenkom/go-mssqldb"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 		worldRepository    repository.WorldRepository    = repository.NewWorldRepository()
 		positionRepository repository.PositionRepository = repository.NewPositionRepository()
 
-		championService service.ChampionService = service.NewChampService(championRepository)
+		championService service.ChampionService = service.NewChampService(championRepository, worldRepository, positionRepository)
 		worldService    service.WorldService    = service.NewWorldService(worldRepository)
 		positionService service.PositionService = service.NewPositionService(positionRepository)
 
@@ -37,10 +38,11 @@ func main() {
 
 	httpRouter.POST("/addChampion", championController.Save)
 	httpRouter.GET("/getAll", championController.GetAll)
-	httpRouter.POST("/deleteChamp", championController.DeleteChamp)
+	httpRouter.DELETE("/deleteChamp", championController.DeleteChamp)
 	httpRouter.POST("/updateChamp", championController.UpdateChamp)
-	httpRouter.POST("/searchFilter", championController.FilterSearchChamps)
+	// httpRouter.POST("/searchFilter", championController.FilterSearchChamps)
 	httpRouter.POST("/addWorld", worldController.Save)
+	httpRouter.GET("/getWorlds", worldController.GetAll)
 	httpRouter.POST("/addPosition", positionController.Save)
 	httpRouter.SERVE(port)
 }

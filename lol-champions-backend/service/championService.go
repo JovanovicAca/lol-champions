@@ -1,29 +1,36 @@
 package service
 
 import (
-	"github.com/google/uuid"
+	"lol-champions-backend/dto"
 	"lol-champions-backend/helper"
 	"lol-champions-backend/model"
 	"lol-champions-backend/repository"
+
+	"github.com/google/uuid"
 )
 
 type ChampionService interface {
 	GetAll() ([]model.Champion, error)
-	Save(champ *model.Champion) (*model.Champion, error)
-	DeleteChamp(champ model.Champion)
-	UpdateChamp(champ model.Champion)
+	Save(champ *dto.ChampionDTO) (*model.Champion, error)
+	DeleteChamp(champ *dto.ChampionDTO) int
+	UpdateChamp(champ *dto.ChampionDTO) (*model.Champion, error)
 	SearchFilter(searchFilter *helper.FilterRequest) (*[]model.Champion, error)
+	//FindById(id *uuid.UUID) (*model.Champion, error)
 }
 
 type championService struct {
 }
 
 var (
-	championRepository repository.ChampionRepository
+	championRepository  repository.ChampionRepository
+	worldRepository     repository.WorldRepository
+	positionsRepository repository.PositionRepository
 )
 
-func NewChampService(championRepo repository.ChampionRepository) ChampionService {
+func NewChampService(championRepo repository.ChampionRepository, worldRepo repository.WorldRepository, posRepo repository.PositionRepository) ChampionService {
 	championRepository = championRepo
+	worldRepository = worldRepo
+	positionRepository = posRepo
 	return &championService{}
 }
 
@@ -51,21 +58,48 @@ func sameElements(champs []model.Champion, list []model.Champion) (*[]model.Cham
 	return &diff, nil
 }
 
-func (s *championService) UpdateChamp(champ model.Champion) {
-	championRepository.UpdateChamp(champ)
+func (s *championService) UpdateChamp(champ *dto.ChampionDTO) (*model.Champion, error) {
+	var world = worldRepository.FindById(champ.World)
+	var positions []model.Position
+	for _, p := range champ.Position {
+		var position = positionRepository.FindByName(p)
+		positions = append(positions, position)
+	}
+	champion := model.Champion{
+		Id:        champ.Id,
+		Name:      champ.Name,
+		World:     world,
+		Class:     champ.Class,
+		Position:  positions,
+		Weapon:    champ.Weapon,
+		MagicCost: champ.MagicCost,
+	}
+	resp, err := championRepository.UpdateChamp(champion)
+	return &resp, err
 }
 
-func (*championService) DeleteChamp(champ model.Champion) {
-	championRepository.DeleteChamp(champ)
+func (*championService) DeleteChamp(champ *dto.ChampionDTO) int {
+	return championRepository.DeleteChamp(champ.Id)
 }
 
-func (*championService) Save(champ *model.Champion) (*model.Champion, error) {
+// func (*championService) FindById(id *uuid.UUID) (*model.Champion, error) {
+// 	resp, err := championRepository.FindById(*id)
+// 	return &resp, err
+// }
+
+func (*championService) Save(champ *dto.ChampionDTO) (*model.Champion, error) {
+	var world = worldRepository.FindById(champ.World)
+	var positions []model.Position
+	for _, p := range champ.Position {
+		var position = positionRepository.FindByName(p)
+		positions = append(positions, position)
+	}
 	champion := model.Champion{
 		Id:        uuid.New(),
 		Name:      champ.Name,
-		World:     champ.World,
+		World:     world,
 		Class:     champ.Class,
-		Position:  champ.Position,
+		Position:  positions,
 		Weapon:    champ.Weapon,
 		MagicCost: champ.MagicCost,
 	}

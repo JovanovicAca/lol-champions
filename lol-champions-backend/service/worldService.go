@@ -1,13 +1,14 @@
 package service
 
 import (
-	"github.com/google/uuid"
 	"lol-champions-backend/model"
 	"lol-champions-backend/repository"
+
+	"github.com/google/uuid"
 )
 
 type WorldService interface {
-	GetAll([]model.World, error)
+	GetAll() ([]model.World, error)
 	Save(world *model.World) (*model.World, error)
 }
 
@@ -15,7 +16,7 @@ type worldService struct {
 }
 
 var (
-	worldRepository repository.WorldRepository
+//worldRepository repository.WorldRepository
 )
 
 func NewWorldService(worldRepo repository.WorldRepository) WorldService {
@@ -23,9 +24,10 @@ func NewWorldService(worldRepo repository.WorldRepository) WorldService {
 	return &worldService{}
 }
 
-func (*worldService) GetAll(worlds []model.World, err error) {
-	//TODO implement me
-	panic("implement me")
+func (w *worldService) GetAll() (worlds []model.World, err error) {
+	var response []model.World
+	response, _ = worldRepository.GetAll()
+	return response, nil
 }
 
 func (*worldService) Save(world *model.World) (*model.World, error) {
