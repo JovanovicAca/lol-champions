@@ -24,19 +24,12 @@ type ChampionRepository interface {
 type championRepository struct {
 }
 
-// var (
-// 	worldRepository     WorldRepository
-// )
-
 func NewChampionRepository() ChampionRepository {
-	//worldRepository = worldRepo
 	return &championRepository{}
 }
 
-func (r *championRepository) Filter(responseChamps []model.Champion, filter helper.FilterRequest) []model.Champion {
+func (r *championRepository) Filter(champs []model.Champion, filter helper.FilterRequest) []model.Champion {
 	//Filtering champions by class, positions, weapon, magic cost
-	//var allChamps []model.Champion
-	//allChamps, _ = r.GetAll()
 
 	var returnedChamps []model.Champion
 	var classChamps []model.Champion
@@ -44,39 +37,34 @@ func (r *championRepository) Filter(responseChamps []model.Champion, filter help
 	var magicCostChamps []model.Champion
 	var positionChamps []model.Champion
 
-	for y, element1 := range responseChamps {
+	for y, element := range champs {
 		if filter.Class != "" {
-			if strings.Compare(element1.Class, filter.Class) == 0 {
-				fmt.Println("A", responseChamps[y].Name)
-				classChamps = append(classChamps, responseChamps[y])
+			if strings.Compare(element.Class, filter.Class) == 0 {
+				classChamps = append(classChamps, champs[y])
 			}
 		}
 		if filter.Weapon != "" {
-			if strings.Compare(element1.Weapon, filter.Weapon) == 0 {
-				fmt.Println("B", responseChamps[y].Name)
-				weaponChamps = append(weaponChamps, responseChamps[y])
+			if strings.Compare(element.Weapon, filter.Weapon) == 0 {
+				weaponChamps = append(weaponChamps, champs[y])
 			}
 		}
 		if filter.MagicCost != "" {
-			if strings.Compare(element1.MagicCost, filter.MagicCost) == 0 {
-				fmt.Println("C", responseChamps[y].Name)
-				magicCostChamps = append(magicCostChamps, responseChamps[y])
+			if strings.Compare(element.MagicCost, filter.MagicCost) == 0 {
+				magicCostChamps = append(magicCostChamps, champs[y])
 
 			}
 		}
-		// if filter.Positions != nil {
-		// 	for _, el1 := range responseChamps[y].Position {
-		// 		for _, el := range filter.Positions {
-
-		// 			if strings.Compare(el1, el) == 0 {
-		// 				positionChamps = append(positionChamps, responseChamps[y])
-		// 			}
-		// 		}
-
-		// 	}
-		// }
+		if filter.Positions != nil {
+			//List of champs positions needed for position filtering
+			var champsPositions = element.Position
+			for _, el := range filter.Positions {
+				if contains(champsPositions, el) {
+					positionChamps = append(positionChamps, champs[y])
+				}
+			}
+		}
 	}
-	returnedChamps = responseChamps
+	returnedChamps = champs
 	if filter.Class != "" {
 		returnedChamps = sameElements(returnedChamps, classChamps)
 	}
@@ -92,6 +80,15 @@ func (r *championRepository) Filter(responseChamps []model.Champion, filter help
 	return returnedChamps
 }
 
+func contains(champsPositions []model.Position, el string) bool {
+	for _, e := range champsPositions {
+		if e.Position == el {
+			return true
+		}
+	}
+	return false
+}
+
 func (*championRepository) SearchFilter(champs []model.Champion, filter helper.FilterRequest) []model.Champion {
 	//filter -> object with search and filter attributes
 	//champs -> all champions
@@ -104,7 +101,7 @@ func (*championRepository) SearchFilter(champs []model.Champion, filter helper.F
 	//Search by name
 	var searchedChampsName []model.Champion
 	if filter.NameSearch != "" {
-		fmt.Println("name search")
+		fmt.Println("Name search")
 		for i, element := range champs {
 			if strings.Contains(element.Name, filter.NameSearch) {
 				searchedChampsName = append(searchedChampsName, champs[i])
@@ -114,12 +111,12 @@ func (*championRepository) SearchFilter(champs []model.Champion, filter helper.F
 	//Search by world
 	var searchedChampsWorld []model.Champion
 	if filter.WorldSearch != "" {
-		fmt.Println("world search")
-		// for i, element := range champs {
-		// 	if strings.Contains(element.World, filter.WorldSearch) {
-		// 		searchedChampsWorld = append(searchedChampsWorld, champs[i])
-		// 	}
-		// }
+		fmt.Println("World search")
+		for i, element := range champs {
+			if strings.Contains(element.World.Name, filter.WorldSearch) {
+				searchedChampsWorld = append(searchedChampsWorld, champs[i])
+			}
+		}
 	}
 
 	//Make intersection between two lists
@@ -150,19 +147,19 @@ func sameElements(champs []model.Champion, list []model.Champion) []model.Champi
 	return diff
 }
 
-func difference(champs []model.Champion, list []model.Champion) []model.Champion {
-	mb := make(map[uuid.UUID]struct{}, len(list))
-	for _, x := range list {
-		mb[x.Id] = struct{}{}
-	}
-	var diff []model.Champion
-	for i, x := range champs {
-		if _, found := mb[x.Id]; !found {
-			diff = append(diff, champs[i])
-		}
-	}
-	return diff
-}
+// func difference(champs []model.Champion, list []model.Champion) []model.Champion {
+// 	mb := make(map[uuid.UUID]struct{}, len(list))
+// 	for _, x := range list {
+// 		mb[x.Id] = struct{}{}
+// 	}
+// 	var diff []model.Champion
+// 	for i, x := range champs {
+// 		if _, found := mb[x.Id]; !found {
+// 			diff = append(diff, champs[i])
+// 		}
+// 	}
+// 	return diff
+// }
 
 func intersection(name []model.Champion, world []model.Champion) []model.Champion {
 	out := []model.Champion{}
@@ -201,7 +198,6 @@ func (*championRepository) UpdateChamp(champ model.Champion) (model.Champion, er
 	//Change in champion_position champs positions
 	//First delete all positions and then add new
 	for range champ.Position {
-		//fmt.Println("5")
 		deleted := `DELETE FROM "champion_position" WHERE "championid" = $1`
 		_, error := sqlObj.Exec(deleted, champ.Id)
 		if error != nil {
@@ -232,7 +228,6 @@ func (r *championRepository) DeleteChamp(id uuid.UUID) int {
 	}
 	defer sqlObj.Close()
 
-	fmt.Println(id)
 	//Delete from Champion_position also
 	deletedChampPos := `DELETE FROM "champion_position" WHERE "championid" = $1`
 	_, error1 := sqlObj.Exec(deletedChampPos, id)

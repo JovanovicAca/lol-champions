@@ -15,8 +15,7 @@ type ChampionController interface {
 	Save(response http.ResponseWriter, request *http.Request)
 	DeleteChamp(response http.ResponseWriter, request *http.Request)
 	UpdateChamp(response http.ResponseWriter, request *http.Request)
-	//FindById(response http.ResponseWriter, request *http.Request)
-	// FilterSearchChamps(response http.ResponseWriter, request *http.Request)
+	FilterSearchChamps(response http.ResponseWriter, request *http.Request)
 }
 type championController struct {
 }
@@ -30,28 +29,6 @@ func NewChampionController(service service.ChampionService) ChampionController {
 	return &championController{}
 }
 
-// func (*championController) FindById(response http.ResponseWriter, request *http.Request) {
-// 	var id uuid.UUID
-// 	fmt.Println("1")
-// 	data := json.NewDecoder(request.Body)
-// 	fmt.Println(data)
-// 	err := data.Decode(&id)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		response.WriteHeader(http.StatusInternalServerError)
-// 		return
-// 	}
-// 	fmt.Println("2")
-
-// 	// result, err1 := championService.FindById(&id)
-// 	// if err1 != nil {
-// 	// 	response.WriteHeader(http.StatusInternalServerError)
-// 	// 	return
-// 	// }
-
-// 	response.WriteHeader(http.StatusOK)
-// 	json.NewEncoder(response)
-// }
 func (*championController) FilterSearchChamps(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	var searchFilter helper.FilterRequest

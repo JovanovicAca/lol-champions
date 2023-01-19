@@ -40,7 +40,7 @@ func main() {
 	httpRouter.GET("/getAll", championController.GetAll)
 	httpRouter.DELETE("/deleteChamp", championController.DeleteChamp)
 	httpRouter.POST("/updateChamp", championController.UpdateChamp)
-	// httpRouter.POST("/searchFilter", championController.FilterSearchChamps)
+	httpRouter.POST("/searchFilter", championController.FilterSearchChamps)
 	httpRouter.POST("/addWorld", worldController.Save)
 	httpRouter.GET("/getWorlds", worldController.GetAll)
 	httpRouter.POST("/addPosition", positionController.Save)

@@ -15,7 +15,6 @@ type ChampionService interface {
 	DeleteChamp(champ *dto.ChampionDTO) int
 	UpdateChamp(champ *dto.ChampionDTO) (*model.Champion, error)
 	SearchFilter(searchFilter *helper.FilterRequest) (*[]model.Champion, error)
-	//FindById(id *uuid.UUID) (*model.Champion, error)
 }
 
 type championService struct {
@@ -36,11 +35,11 @@ func NewChampService(championRepo repository.ChampionRepository, worldRepo repos
 
 func (*championService) SearchFilter(searchFilter *helper.FilterRequest) (*[]model.Champion, error) {
 	var responseChamps []model.Champion
-	//Get all and search/filter in that list
 	responseChamps, _ = championRepository.GetAll()
 	//List where everything will be stored
 	searched := championRepository.SearchFilter(responseChamps, *searchFilter)
-	filtered := championRepository.Filter(responseChamps, *searchFilter)
+	//Pass searched champs into filtering (if there is no searchs full list is passed)
+	filtered := championRepository.Filter(searched, *searchFilter)
 	return sameElements(searched, filtered)
 }
 
@@ -81,11 +80,6 @@ func (s *championService) UpdateChamp(champ *dto.ChampionDTO) (*model.Champion, 
 func (*championService) DeleteChamp(champ *dto.ChampionDTO) int {
 	return championRepository.DeleteChamp(champ.Id)
 }
-
-// func (*championService) FindById(id *uuid.UUID) (*model.Champion, error) {
-// 	resp, err := championRepository.FindById(*id)
-// 	return &resp, err
-// }
 
 func (*championService) Save(champ *dto.ChampionDTO) (*model.Champion, error) {
 	var world = worldRepository.FindById(champ.World)
