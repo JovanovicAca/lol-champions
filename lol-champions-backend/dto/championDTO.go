@@ -7,7 +7,7 @@ import (
 type ChampionDTO struct {
 	Id        uuid.UUID
 	Name      string
-	World     uuid.UUID
+	World     string
 	Class     string
 	Position  []string
 	Weapon    string

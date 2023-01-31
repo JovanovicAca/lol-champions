@@ -58,7 +58,7 @@ func sameElements(champs []model.Champion, list []model.Champion) (*[]model.Cham
 }
 
 func (s *championService) UpdateChamp(champ *dto.ChampionDTO) (*model.Champion, error) {
-	var world = worldRepository.FindById(champ.World)
+	var world = worldRepository.FindByName(champ.World)
 	var positions []model.Position
 	for _, p := range champ.Position {
 		var position = positionRepository.FindByName(p)
@@ -82,7 +82,7 @@ func (*championService) DeleteChamp(champ *dto.ChampionDTO) int {
 }
 
 func (*championService) Save(champ *dto.ChampionDTO) (*model.Champion, error) {
-	var world = worldRepository.FindById(champ.World)
+	var world = worldRepository.FindByName(champ.World)
 	var positions []model.Position
 	for _, p := range champ.Position {
 		var position = positionRepository.FindByName(p)
