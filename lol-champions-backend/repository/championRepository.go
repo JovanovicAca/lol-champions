@@ -147,19 +147,19 @@ func sameElements(champs []model.Champion, list []model.Champion) []model.Champi
 	return diff
 }
 
-// func difference(champs []model.Champion, list []model.Champion) []model.Champion {
-// 	mb := make(map[uuid.UUID]struct{}, len(list))
-// 	for _, x := range list {
-// 		mb[x.Id] = struct{}{}
-// 	}
-// 	var diff []model.Champion
-// 	for i, x := range champs {
-// 		if _, found := mb[x.Id]; !found {
-// 			diff = append(diff, champs[i])
-// 		}
-// 	}
-// 	return diff
-// }
+func difference(champs []model.Champion, list []model.Champion) []model.Champion {
+	mb := make(map[uuid.UUID]struct{}, len(list))
+	for _, x := range list {
+		mb[x.Id] = struct{}{}
+	}
+	var diff []model.Champion
+	for i, x := range champs {
+		if _, found := mb[x.Id]; !found {
+			diff = append(diff, champs[i])
+		}
+	}
+	return diff
+}
 
 func intersection(name []model.Champion, world []model.Champion) []model.Champion {
 	out := []model.Champion{}
@@ -222,7 +222,6 @@ func (r *championRepository) DeleteChamp(id uuid.UUID) int {
 	sqlConn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	sqlObj, connectionError := sql.Open("postgres", sqlConn)
-
 	if connectionError != nil {
 		fmt.Println(fmt.Errorf("error opening database: %v", connectionError))
 	}

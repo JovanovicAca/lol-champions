@@ -31,9 +31,9 @@ func main() {
 	var httpRouter router.Router = router.NewMuxRouter()
 	//http.ListenAndServe(":8080", nil)
 	fmt.Println("Hello world!")
-	const port string = ":8080"
+	const port string = ":8081"
 	httpRouter.GET("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(w, "Up and runing")
+		fmt.Println(w, "Up acdnd runing")
 	})
 
 	httpRouter.POST("/addChampion", championController.Save)
